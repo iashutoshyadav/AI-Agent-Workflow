@@ -11,7 +11,7 @@ actions:
   - name: triggerWorkflowRun
     definition:
       kind: synchronous
-      handler: "{{NHOST_FUNCTIONS_URL}}/trigger-workflow-run"
+      handler: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/trigger-workflow-run"
       forward_client_headers: true
       headers:
         - name: x-hasura-admin-secret
@@ -29,7 +29,7 @@ actions:
   - name: approveStep
     definition:
       kind: synchronous
-      handler: "{{NHOST_FUNCTIONS_URL}}/approve-step"
+      handler: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/approve-step"
       forward_client_headers: true
       headers:
         - name: x-hasura-admin-secret
@@ -47,7 +47,7 @@ actions:
   - name: createOrganization
     definition:
       kind: synchronous
-      handler: "{{NHOST_FUNCTIONS_URL}}/create-organization"
+      handler: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/create-organization"
       forward_client_headers: true
       headers:
         - name: x-hasura-admin-secret
