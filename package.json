@@ -1,0 +1,14 @@
+{
+  "name": "ai-agent-workflow-builder",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Hasura Action / Event Trigger / Cron Trigger handlers for the AI Agent Workflow Builder (nhost Functions). The frontend (web/) is a separate Next.js app with its own package.json.",
+  "dependencies": {
+    "cron-parser": "^4.9.0"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/node": "^20.14.0",
+    "typescript": "^5.5.0"
+  }
+}

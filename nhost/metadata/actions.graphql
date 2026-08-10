@@ -1,0 +1,20 @@
+type Mutation {
+  triggerWorkflowRun(workflow_id: uuid!): TriggerWorkflowRunOutput
+  approveStep(step_run_id: uuid!, approve: Boolean!, reason: String): ApproveStepOutput
+  createOrganization(name: String!): CreateOrganizationOutput
+}
+
+type TriggerWorkflowRunOutput {
+  workflow_run_id: uuid!
+  status: String!
+}
+
+type ApproveStepOutput {
+  step_run_id: uuid!
+  workflow_run_id: uuid!
+  status: String!
+}
+
+type CreateOrganizationOutput {
+  org_id: uuid!
+}

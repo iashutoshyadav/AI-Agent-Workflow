@@ -1,0 +1,28 @@
+# Starting point for the nhost CLI project config.
+#
+# IMPORTANT: nhost CLI versions have changed this file's shape over
+# time. Do NOT trust this blindly — the safest path (especially if
+# you're new to nhost) is:
+#   1. Run `nhost init` in a fresh empty folder to let the CLI
+#      generate a nhost.toml that matches the version you installed.
+#   2. Copy this repo's nhost/migrations, nhost/metadata, and
+#      functions/ into that scaffold, keeping the CLI's own
+#      nhost.toml (adjusting [functions] below into it).
+#   3. Or skip the CLI entirely: create the project at nhost.io,
+#      paste nhost/migrations/default/*/up.sql into the Hasura
+#      Console's SQL tab, then import nhost/metadata via
+#      Console → Settings → Import metadata. See README.md.
+
+[hasura]
+  version = "v2.36.0"
+
+[postgres]
+  version = "14"
+
+[auth]
+  [auth.method.emailPassword]
+    hibpEnabled = false
+
+[functions]
+  [functions.node]
+    version = 18

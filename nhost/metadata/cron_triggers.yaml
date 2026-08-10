@@ -1,0 +1,22 @@
+# Scheduled trigger type. Hasura's own cron scheduler ticks every 5
+# minutes and calls our function, which then checks each *individual*
+# workflow_triggers row of type='scheduled' against its own cron
+# expression (stored in config.cron) — this is the standard "poller"
+# pattern for per-tenant cron on top of one platform-level cron tick.
+cron_triggers:
+  - name: scheduled_workflow_poller
+    webhook: "{{NHOST_FUNCTIONS_URL}}/scheduled-runner"
+    schedule: "*/5 * * * *"
+    include_in_metadata: true
+    payload: {}
+    retry_conf:
+      num_retries: 3
+      timeout_seconds: 60
+      tolerance_seconds: 21600
+      retry_interval_seconds: 10
+    headers:
+      - name: x-hasura-admin-secret
+        value_from_env: HASURA_GRAPHQL_ADMIN_SECRET
+    comment: >-
+      Polls active workflow_triggers of type 'scheduled' and starts a
+      run for any whose cron expression is due.
