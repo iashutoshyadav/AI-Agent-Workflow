@@ -111,8 +111,13 @@ export async function runWorkflow(workflowRunId: string): Promise<string> {
     }
   }
 
+  const stepTypeById = new Map(steps.map((s) => [s.id, s.type]));
+  const priorCalls = existingRuns.filter(
+    (sr) => sr.status === "succeeded" && ["llm_call", "http_request"].includes(stepTypeById.get(sr.workflow_step_id) ?? "")
+  ).length;
+
   await updateWorkflowRun(workflowRunId, { status: "succeeded", finished_at: new Date().toISOString() });
-  await incrementOrgUsage(run.org_id, Math.max(1, llmOrHttpCallsMade));
+  await incrementOrgUsage(run.org_id, Math.max(1, priorCalls + llmOrHttpCallsMade));
   return "succeeded";
 }
 
