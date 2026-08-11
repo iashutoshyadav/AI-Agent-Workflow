@@ -18,7 +18,11 @@ export interface StepContext {
 // isn't set, matching the assignment's stated fallback.
 // ------------------------------------------------------------------
 export async function runLlmCall(config: any, ctx: StepContext) {
-  const apiKey = process.env.LLM_API_KEY;
+  // .trim() defensively: env var values pasted into dashboard UIs
+  // routinely pick up stray leading/trailing whitespace (found via
+  // live testing — a leading tab in LLM_MODEL made Groq 404 on
+  // "\tllama-3.1-8b-instant"). Don't depend on the value being clean.
+  const apiKey = process.env.LLM_API_KEY?.trim();
   const prompt = interpolate(config.prompt ?? "", ctx.previousOutput);
 
   if (!apiKey) {
@@ -31,8 +35,8 @@ export async function runLlmCall(config: any, ctx: StepContext) {
     };
   }
 
-  const baseUrl = process.env.LLM_BASE_URL ?? "https://api.groq.com/openai/v1/chat/completions";
-  const model = config.model ?? process.env.LLM_MODEL ?? "llama-3.1-8b-instant";
+  const baseUrl = (process.env.LLM_BASE_URL?.trim()) || "https://api.groq.com/openai/v1/chat/completions";
+  const model = (config.model?.trim()) || process.env.LLM_MODEL?.trim() || "llama-3.1-8b-instant";
 
   const { result } = await withRetry(async () => {
     const res = await fetch(baseUrl, {
