@@ -1,16 +1,3 @@
-# Hasura metadata — tables, relationships, and Layer 1 permissions
-# (org + role scoping). Layer 2 (step-level gating for approval_gate,
-# and the "only owner can add db_write/webhook/notify" rule) is partly
-# expressed here as column-value-restricted insert/update permissions,
-# and partly enforced in the Action handlers — see docs/writeup.md.
-#
-# Every permission below scopes rows through the `organization` ->
-# `org_members` relationship chain, so a role match alone is never
-# sufficient — the caller must also be a member of THAT row's org.
-# This is what makes cross-org access impossible even if an editor in
-# Org A guesses a valid workflow_id belonging to Org B: the row filter
-# still requires an org_members row for Org B with their user id, which
-# doesn't exist.
 
 - table:
     schema: public
@@ -58,12 +45,6 @@
         filter:
           org_members:
             user_id: { _eq: X-Hasura-User-Id }
-    # "user" is nhost's session default role — every authenticated
-    # request that doesn't set X-Hasura-Role explicitly (e.g. a
-    # websocket subscription, whose per-operation headers aren't
-    # always reliably forwarded the way HTTP query headers are) lands
-    # here. Reads are safe to allow with the same membership-only
-    # filter as viewer; writes are NOT granted to this role anywhere.
     - role: user
       permission:
         columns: [id, name, quota_calls_allowed, quota_calls_used, quota_period_start, created_at]
@@ -149,10 +130,6 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
-  # Only an owner of THIS org can manage membership (add/change/remove).
-  # The bootstrap owner row for a brand new org is inserted by the
-  # createOrganization action using the admin secret, not via this
-  # permission (there is no existing owner yet to satisfy the filter).
   insert_permissions:
     - role: owner
       permission:
@@ -327,11 +304,6 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
-  # Layer 2, expressed declaratively: an editor's insert/update check
-  # excludes the two sensitive step types outright. Only `owner` has an
-  # unrestricted type column. This means "only an owner can add a
-  # db_write or notify step" is enforced by Postgres/Hasura itself, not
-  # just assumed by the frontend.
   insert_permissions:
     - role: owner
       permission:
@@ -436,7 +408,6 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
-  # Only owner can add a webhook trigger (Layer 2, declarative).
   insert_permissions:
     - role: owner
       permission:
@@ -510,13 +481,6 @@
           table:
             schema: public
             name: step_runs
-  # No insert/update/delete permissions for any client role — every
-  # workflow_run is created and mutated exclusively by the
-  # triggerWorkflowRun / approveStep Action handlers using the admin
-  # secret. This is intentional: "can editor/viewer trigger a run" is a
-  # decision the Action makes at call time (see functions/), not
-  # something a static row permission can express, since it also needs
-  # to check org quota.
   select_permissions:
     - role: owner
       permission:
@@ -560,8 +524,6 @@
     - name: organization
       using:
         foreign_key_constraint_on: org_id
-  # Select-only for clients — written exclusively by the db_write step
-  # handler (admin secret) inside the engine.
   select_permissions:
     - role: owner
       permission:
@@ -645,9 +607,6 @@
               user_id: { _eq: X-Hasura-User-Id }
               role: { _in: [owner, editor] }
         columns: [org_id, source, payload]
-  # Database Event trigger type: any INSERT here is forwarded to our
-  # function, which matches it against active `workflow_triggers` rows
-  # of type 'event' (by org_id + config.source) and starts a run.
   event_triggers:
     - name: external_event_insert
       definition:
@@ -673,11 +632,6 @@
     - name: organization
       using:
         foreign_key_constraint_on: org_id
-  # Same reasoning as workflow_runs: only the Action handlers write
-  # here (admin secret). In particular `approved_by`/`approved_at` are
-  # NEVER directly updatable by a client role — approveStep must run
-  # its own role check first. This is the concrete answer to "clearing
-  # an approval_gate can't be a database permission alone."
   select_permissions:
     - role: owner
       permission:
@@ -707,10 +661,6 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
-  # `notify` step type is implemented as an Event Trigger rather than
-  # inline code in the engine: the engine writes a step_runs row for a
-  # notify step, and THIS insert (on step_runs, not workflow_runs) is
-  # what fires actual Slack/email delivery. See functions/notify-runner.ts.
   event_triggers:
     - name: step_run_notify
       definition:

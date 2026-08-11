@@ -10,16 +10,6 @@ export class HttpError extends Error {
   }
 }
 
-/**
- * Ground truth for "what role does this user actually have in this
- * org, right now." Always called with `userId` taken from
- * session_variables['x-hasura-user-id'] (verified by the JWT before
- * the Action handler ever runs) — NEVER with the client-supplied
- * x-hasura-role claim, which only says which permission ruleset the
- * client attempted to use, not what it's entitled to. This is what
- * makes Layer 2 (step-level gating, approval-gate resolution) an
- * actual authorization check instead of a client-trusted assumption.
- */
 export async function getRealRole(
   userId: string,
   orgId: string

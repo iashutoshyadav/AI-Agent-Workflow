@@ -8,15 +8,6 @@ interface TriggerRow {
   config: { source?: string };
 }
 
-/**
- * Database Event trigger type. Wired via the `external_event_insert`
- * Hasura Event Trigger on public.external_events (INSERT) — see
- * nhost/metadata/databases/default/tables/tables.yaml. Any row
- * inserted into external_events is matched against active
- * workflow_triggers of type 'event' in the SAME org whose
- * config.source matches the event's source, and a run is started for
- * each match.
- */
 export default async function handler(req: Request, res: Response) {
   const row = req.body?.event?.data?.new;
   if (!row) return res.status(200).json({ started: 0 });

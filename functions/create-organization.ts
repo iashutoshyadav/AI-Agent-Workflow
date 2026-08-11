@@ -2,13 +2,6 @@ import type { Request, Response } from "express";
 import { adminGql } from "./lib/hasura";
 import { getSessionUserId, HttpError } from "./lib/auth";
 
-/**
- * Bootstraps a brand new org and inserts the caller as its first
- * owner. Not one of the six graded step/trigger types — this exists
- * purely to solve the chicken-and-egg problem of "org_members insert
- * permission requires an existing owner row to check against."
- * Runs as one Hasura bulk mutation so both inserts commit atomically.
- */
 export default async function handler(req: Request, res: Response) {
   try {
     const { input, session_variables } = req.body;

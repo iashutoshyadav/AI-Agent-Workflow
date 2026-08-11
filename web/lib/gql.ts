@@ -1,7 +1,5 @@
 import { gql } from "@apollo/client";
 
-// -------- queries --------
-
 export const MY_ORGS = gql`
   query MyOrgs {
     organizations {
@@ -19,8 +17,6 @@ export const MY_ORGS = gql`
   }
 `;
 
-// Required GraphQL operation: an org's workflows with their steps,
-// triggers, and most recent run status.
 export const ORG_WORKFLOWS = gql`
   query OrgWorkflows($orgId: uuid!) {
     organizations_by_pk(id: $orgId) {
@@ -81,10 +77,6 @@ export const WORKFLOW_RUNS = gql`
   }
 `;
 
-// -------- mutations --------
-
-// A mutation to create a workflow with its steps and trigger in one
-// nested insert (transactional).
 export const CREATE_WORKFLOW = gql`
   mutation CreateWorkflow($object: workflows_insert_input!) {
     insert_workflows_one(object: $object) {
@@ -173,7 +165,6 @@ export const CREATE_ORGANIZATION = gql`
   }
 `;
 
-// The core Action call — starts a run.
 export const TRIGGER_WORKFLOW_RUN = gql`
   mutation TriggerWorkflowRun($workflowId: uuid!) {
     triggerWorkflowRun(workflow_id: $workflowId) {
@@ -183,7 +174,6 @@ export const TRIGGER_WORKFLOW_RUN = gql`
   }
 `;
 
-// A mutation to approve (or reject) a paused approval_gate step.
 export const APPROVE_STEP = gql`
   mutation ApproveStep($stepRunId: uuid!, $approve: Boolean!, $reason: String) {
     approveStep(step_run_id: $stepRunId, approve: $approve, reason: $reason) {
@@ -194,11 +184,6 @@ export const APPROVE_STEP = gql`
   }
 `;
 
-// -------- subscriptions --------
-
-// A subscription on step_runs (filtered to a workflow_run_id) for
-// live step-by-step progress, including the paused/awaiting-approval
-// state, plus the parent run's own status.
 export const STEP_RUNS_SUBSCRIPTION = gql`
   subscription StepRunsForRun($runId: uuid!) {
     workflow_runs_by_pk(id: $runId) {

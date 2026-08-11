@@ -7,10 +7,6 @@ import { ORG_WORKFLOWS, STEP_RUNS_SUBSCRIPTION, APPROVE_STEP } from "@/lib/gql";
 import { roleHeader, OrgRole } from "@/lib/role";
 import TopNav from "@/components/TopNav";
 
-// Live, subscription-driven view of one workflow_run — this is what
-// makes the "no refresh, including the paused state" part of the
-// final scenario real: STEP_RUNS_SUBSCRIPTION is a GraphQL
-// subscription (websocket), not a poll.
 export default function RunPage() {
   const router = useRouter();
   const orgId = router.query.orgId as string;

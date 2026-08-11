@@ -13,14 +13,6 @@ import { runLlmCall, runHttpRequest, runDbWrite, evaluateCondition, StepContext 
 
 const TERMINAL_RUN_STATUSES = new Set(["succeeded", "failed", "cancelled"]);
 
-/**
- * Executes a workflow_run's steps in order, starting from wherever it
- * left off. This is called three times over one run's lifetime in the
- * approval-gate scenario: once by triggerWorkflowRun (runs up to the
- * gate and pauses), and once more by approveStep (resumes and runs to
- * completion) — the loop is idempotent about already-finished steps,
- * so "resume" is just "call the same function again."
- */
 export async function runWorkflow(workflowRunId: string): Promise<string> {
   const run = await getWorkflowRun(workflowRunId);
   if (!run) throw new Error(`workflow_run ${workflowRunId} not found`);
@@ -51,7 +43,6 @@ export async function runWorkflow(workflowRunId: string): Promise<string> {
     }
 
     if (existing?.status === "paused") {
-      // Still waiting on approveStep — nothing more to do right now.
       return "paused";
     }
 
@@ -89,19 +80,12 @@ export async function runWorkflow(workflowRunId: string): Promise<string> {
 
     try {
       if (step.type === "notify") {
-        // Fire-and-forget: leave status "running" — the
-        // `step_run_notify` Hasura Event Trigger on this INSERT is
-        // what actually delivers the Slack/email alert and finalizes
-        // this step_run's status. The engine doesn't block on it.
         previousOutput = { notify_queued: true, channel: step.config?.channel ?? "slack" };
         continue;
       }
 
       let output: unknown;
 
-      // llm_call and http_request each retry once internally (see
-      // lib/steps.ts) — attempt_count here reflects that a retry
-      // happened when the underlying call needed one.
       switch (step.type) {
         case "llm_call":
           output = await runLlmCall(step.config, ctx);

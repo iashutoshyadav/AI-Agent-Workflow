@@ -1,11 +1,3 @@
-# Hasura Actions — the core of the assignment.
-#
-# `permissions:` below is a coarse, role-header gate (viewer can never
-# even call triggerWorkflowRun/approveStep). The REAL authorization —
-# "is this user actually owner/editor in THIS workflow's org, right
-# now" — is re-derived inside the handler from x-hasura-user-id against
-# org_members with the admin secret, never trusted from the client's
-# X-Hasura-Role header. See functions/lib/auth.ts.
 
 actions:
   - name: triggerWorkflowRun
@@ -17,11 +9,7 @@ actions:
     permissions:
       - role: owner
       - role: editor
-    comment: >-
-      Verifies caller is owner/editor in the workflow's org, checks org
-      quota, creates workflow_run, executes steps in order (llm_call,
-      http_request, db_write, conditional_branch, notify, approval_gate),
-      pausing on approval_gate. Increments quota usage on completion.
+    comment: Starts a workflow run after checking role and quota.
 
   - name: approveStep
     definition:
@@ -32,11 +20,7 @@ actions:
     permissions:
       - role: owner
       - role: editor
-    comment: >-
-      Checks the approver is owner/editor in the approval_gate step's
-      org (fresh DB lookup, not the session role claim), then marks the
-      step approved/rejected and resumes execution of the remaining
-      steps in that workflow_run.
+    comment: Approves or rejects a paused approval_gate step and resumes the run.
 
   - name: createOrganization
     definition:
@@ -49,11 +33,7 @@ actions:
       - role: owner
       - role: editor
       - role: viewer
-    comment: >-
-      Bootstraps a brand new org + inserts the caller as its first
-      owner, in one transaction. Not one of the graded step types, but
-      needed to get from "freshly signed-up user" to "org owner" without
-      a chicken-and-egg org_members insert permission problem.
+    comment: Creates a new organization and adds the caller as its owner.
 
 custom_types:
   enums: []

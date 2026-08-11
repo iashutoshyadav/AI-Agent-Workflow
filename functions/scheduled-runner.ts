@@ -9,14 +9,6 @@ interface TriggerRow {
   config: { cron?: string; last_run_at?: string };
 }
 
-/**
- * Called every 5 minutes by the `scheduled_workflow_poller` Hasura
- * Cron Trigger (see nhost/metadata/cron_triggers.yaml). Hasura's cron
- * feature fires on ONE fixed schedule; per-workflow cron expressions
- * live in each workflow_triggers row's config and are evaluated here,
- * so different workflows can have different schedules on top of one
- * platform-level tick.
- */
 export default async function handler(_req: Request, res: Response) {
   const data = await adminGql<{ workflow_triggers: TriggerRow[] }>(
     `query {

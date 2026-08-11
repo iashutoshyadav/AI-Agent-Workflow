@@ -17,12 +17,6 @@ export async function getWorkflowOrThrow(workflowId: string): Promise<WorkflowLo
   return data.workflows_by_pk;
 }
 
-/**
- * Shared by every trigger path (manual Action, webhook, scheduled,
- * event) once each has done its own authorization for THAT trigger
- * type — quota check, run creation, and running the engine are
- * identical regardless of how the run was started.
- */
 export async function startRun(
   workflow: WorkflowLookup,
   triggerType: "manual" | "webhook" | "scheduled" | "event",

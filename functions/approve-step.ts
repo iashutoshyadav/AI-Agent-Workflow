@@ -12,16 +12,6 @@ interface StepRunRow {
   workflow_step: { type: string };
 }
 
-/**
- * Hasura Action handler for `approveStep(step_run_id, approve, reason)`.
- *
- * This is the concrete answer to "clearing an approval_gate requires
- * the Action handler itself to check the approver's role — it can't be
- * a database permission alone": there is deliberately no Hasura update
- * permission on step_runs for approved_by/approved_at. The only way to
- * move a paused run forward is through this handler, which re-derives
- * the caller's real role from org_members before touching anything.
- */
 export default async function handler(req: Request, res: Response) {
   try {
     const { input, session_variables } = req.body;

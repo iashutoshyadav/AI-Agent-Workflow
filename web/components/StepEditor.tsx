@@ -3,16 +3,10 @@ export interface StepDraft {
   position: number;
   type: string;
   name: string;
-  config: string; // JSON text, kept as a string while editing
+  config: string;
 }
 
 const STEP_TYPES = ["llm_call", "http_request", "db_write", "notify", "conditional_branch", "approval_gate"];
-
-// db_write and notify are owner-only per the assignment's Layer 2
-// rule. This greys them out as a UX nicety — the REAL enforcement is
-// server-side (see workflow_steps insert/update permissions in
-// nhost/metadata), so a viewer poking at devtools still can't sneak
-// one through.
 const OWNER_ONLY_TYPES = new Set(["db_write", "notify"]);
 
 export default function StepEditor({

@@ -1,28 +1,3 @@
-# Starting point for the nhost CLI project config.
-#
-# Deliberately kept at the repo root, NOT nhost/nhost.toml: nhost's
-# deploy pipeline only reads config from nhost/nhost.toml, and would
-# treat its presence there as a request to reconcile the live
-# project's settings (Hasura version, etc.) to match this file. Since
-# this file's values are unverified guesses, moving it there risked
-# the deploy pipeline trying to change a working provisioned project's
-# config to match a wrong guess. Left here, it's inert — informational
-# only. If you use the CLI locally, follow steps 1-2 below instead of
-# moving this file as-is.
-#
-# IMPORTANT: nhost CLI versions have changed this file's shape over
-# time. Do NOT trust this blindly — the safest path (especially if
-# you're new to nhost) is:
-#   1. Run `nhost init` in a fresh empty folder to let the CLI
-#      generate a nhost.toml that matches the version you installed.
-#   2. Copy this repo's nhost/migrations, nhost/metadata, and
-#      functions/ into that scaffold, keeping the CLI's own
-#      nhost.toml (adjusting [functions] below into it).
-#   3. Or skip the CLI entirely: create the project at nhost.io,
-#      paste nhost/migrations/default/*/up.sql into the Hasura
-#      Console's SQL tab, then import nhost/metadata via
-#      Console → Settings → Import metadata. See README.md.
-
 [hasura]
   version = "v2.36.0"
 

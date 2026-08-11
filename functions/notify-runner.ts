@@ -8,15 +8,6 @@ interface StepRunRow {
   workflow_step: { type: string; config: any };
 }
 
-/**
- * `notify` step type, implemented as an Event Trigger rather than
- * inline engine code: the engine (lib/engine.ts) just inserts a
- * step_runs row for the notify step and moves on. This handler reacts
- * to that INSERT (via the `step_run_notify` Hasura Event Trigger),
- * performs the actual Slack/email delivery, and writes the final
- * status back onto the same row — which the live subscription then
- * reflects.
- */
 export default async function handler(req: Request, res: Response) {
   const row = req.body?.event?.data?.new;
   if (!row) return res.status(200).json({ skipped: true });
@@ -47,7 +38,6 @@ export default async function handler(req: Request, res: Response) {
       });
       if (!res2.ok) throw new Error(`Slack webhook error ${res2.status}`);
     } else {
-      // No Slack webhook configured — stubbed delivery, clearly labeled.
       console.log(`[notify-runner] (stubbed email) to=${config.email ?? "unset"} message="${message}"`);
     }
 

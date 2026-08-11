@@ -9,19 +9,7 @@ export interface StepContext {
   previousOutput: unknown;
 }
 
-// ------------------------------------------------------------------
-// llm_call — real call to an OpenAI-compatible chat completions API.
-// Groq and OpenRouter both speak this exact schema on their free
-// tiers, so one implementation covers either — just point LLM_BASE_URL
-// / LLM_MODEL at whichever you signed up for. Falls back to a clearly
-// labeled stub (with a disclosed artificial delay) when LLM_API_KEY
-// isn't set, matching the assignment's stated fallback.
-// ------------------------------------------------------------------
 export async function runLlmCall(config: any, ctx: StepContext) {
-  // .trim() defensively: env var values pasted into dashboard UIs
-  // routinely pick up stray leading/trailing whitespace (found via
-  // live testing — a leading tab in LLM_MODEL made Groq 404 on
-  // "\tllama-3.1-8b-instant"). Don't depend on the value being clean.
   const apiKey = process.env.LLM_API_KEY?.trim();
   const prompt = interpolate(config.prompt ?? "", ctx.previousOutput);
 
@@ -63,9 +51,6 @@ export async function runLlmCall(config: any, ctx: StepContext) {
   return result;
 }
 
-// ------------------------------------------------------------------
-// http_request — generic call to any external API, one retry.
-// ------------------------------------------------------------------
 export async function runHttpRequest(config: any, ctx: StepContext) {
   if (!config.url) throw new Error("http_request step is missing config.url");
 
@@ -79,9 +64,7 @@ export async function runHttpRequest(config: any, ctx: StepContext) {
     let body: unknown = text;
     try {
       body = JSON.parse(text);
-    } catch {
-      /* not json, keep as text */
-    }
+    } catch {}
     if (!res.ok) throw new Error(`http_request step got HTTP ${res.status}: ${text}`);
     return { status: res.status, body };
   }, 1);
@@ -89,9 +72,6 @@ export async function runHttpRequest(config: any, ctx: StepContext) {
   return result;
 }
 
-// ------------------------------------------------------------------
-// db_write — persists a result into workflow_artifacts (our own table).
-// ------------------------------------------------------------------
 export async function runDbWrite(config: any, ctx: StepContext) {
   const data = interpolateDeep(config.data ?? ctx.previousOutput ?? {}, ctx.previousOutput);
   await adminGql(
@@ -105,12 +85,6 @@ export async function runDbWrite(config: any, ctx: StepContext) {
   return { saved: true, data };
 }
 
-// ------------------------------------------------------------------
-// conditional_branch — if/else on the PREVIOUS step's output.
-// config: { field, operator: eq|neq|contains|gt|lt|truthy, value,
-//           on_true: {action:"continue"} | {action:"skip_to", position},
-//           on_false: {action:"continue"} | {action:"skip_to", position} }
-// ------------------------------------------------------------------
 export function evaluateCondition(config: any, previousOutput: unknown): boolean {
   const actual = getPath(previousOutput, config.field ?? "");
   const expected = config.value;

@@ -11,10 +11,6 @@ export default function OrgsPage() {
   const router = useRouter();
   const userId = useUserId();
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus();
-  // Read-only, so any role works here: the select_permissions filter
-  // on organizations/org_members is identical across owner/editor/
-  // viewer/user — this query runs before we know which specific role
-  // the user has in any org (or whether they're in one at all).
   const { data, loading, error, refetch } = useQuery(MY_ORGS, {
     skip: !isAuthenticated,
     ...roleHeader("user"),

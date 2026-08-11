@@ -10,17 +10,6 @@ interface TriggerRow {
   is_active: boolean;
 }
 
-/**
- * Public inbound endpoint for the Webhook trigger type — this is
- * plain HTTP, not a Hasura Action, since the caller is an external
- * system with no nhost user session. Authorization comes from a
- * per-trigger secret token (set by the org owner when they create the
- * `webhook` trigger — only owners can create one, per the
- * workflow_triggers insert permission) instead of a role check.
- *
- * POST /webhook-trigger
- * body: { workflow_id: string, token: string }
- */
 export default async function handler(req: Request, res: Response) {
   try {
     const { workflow_id: workflowId, token } = req.body ?? {};

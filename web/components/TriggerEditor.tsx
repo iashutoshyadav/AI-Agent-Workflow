@@ -7,9 +7,6 @@ export interface TriggerDraft {
 
 const TRIGGER_TYPES = ["manual", "webhook", "scheduled", "event"];
 
-// webhook is owner-only per the assignment's Layer 2 rule — greyed
-// out here as UX only; enforced server-side by the
-// workflow_triggers insert permission.
 export default function TriggerEditor({
   triggers,
   onChange,

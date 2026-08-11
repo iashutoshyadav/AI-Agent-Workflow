@@ -1,20 +1,5 @@
--- AI Agent Workflow Builder — initial schema
--- Design notes (see docs/writeup.md for full reasoning):
---  * org_id is denormalized onto every child table (steps, triggers, runs,
---    step_runs) and is populated ONLY by a BEFORE INSERT trigger from the
---    parent row — never accepted from client input. This lets every Hasura
---    permission be a single flat org_members lookup instead of a deep
---    relationship chain, which is both easier to get right and cheaper to
---    evaluate on every request.
---  * Roles/statuses are plain text + CHECK constraints (not native enums)
---    so Hasura's generated GraphQL enums stay simple and permission
---    expressions can use plain _in filters.
-
 create extension if not exists pgcrypto;
 
--- ============================================================
--- organizations
--- ============================================================
 create table if not exists public.organizations (
   id                  uuid primary key default gen_random_uuid(),
   name                text not null,
@@ -24,9 +9,6 @@ create table if not exists public.organizations (
   created_at          timestamptz not null default now()
 );
 
--- ============================================================
--- org_members — user_id, org_id, role
--- ============================================================
 create table if not exists public.org_members (
   id         uuid primary key default gen_random_uuid(),
   org_id     uuid not null references public.organizations(id) on delete cascade,
@@ -39,9 +21,6 @@ create table if not exists public.org_members (
 create index if not exists idx_org_members_user_id on public.org_members(user_id);
 create index if not exists idx_org_members_org_id on public.org_members(org_id);
 
--- ============================================================
--- workflows
--- ============================================================
 create table if not exists public.workflows (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null references public.organizations(id) on delete cascade,
@@ -54,9 +33,6 @@ create table if not exists public.workflows (
 
 create index if not exists idx_workflows_org_id on public.workflows(org_id);
 
--- ============================================================
--- workflow_steps — ordered, typed, JSONB config
--- ============================================================
 create table if not exists public.workflow_steps (
   id          uuid primary key default gen_random_uuid(),
   workflow_id uuid not null references public.workflows(id) on delete cascade,
@@ -75,9 +51,6 @@ create table if not exists public.workflow_steps (
 create index if not exists idx_workflow_steps_workflow_id on public.workflow_steps(workflow_id);
 create index if not exists idx_workflow_steps_org_id on public.workflow_steps(org_id);
 
--- ============================================================
--- workflow_triggers
--- ============================================================
 create table if not exists public.workflow_triggers (
   id          uuid primary key default gen_random_uuid(),
   workflow_id uuid not null references public.workflows(id) on delete cascade,
@@ -91,9 +64,6 @@ create table if not exists public.workflow_triggers (
 create index if not exists idx_workflow_triggers_workflow_id on public.workflow_triggers(workflow_id);
 create index if not exists idx_workflow_triggers_org_id on public.workflow_triggers(org_id);
 
--- ============================================================
--- workflow_runs — one per execution
--- ============================================================
 create table if not exists public.workflow_runs (
   id           uuid primary key default gen_random_uuid(),
   workflow_id  uuid not null references public.workflows(id) on delete cascade,
@@ -112,9 +82,6 @@ create index if not exists idx_workflow_runs_workflow_id on public.workflow_runs
 create index if not exists idx_workflow_runs_org_id on public.workflow_runs(org_id);
 create index if not exists idx_workflow_runs_status on public.workflow_runs(status);
 
--- ============================================================
--- step_runs — one per step per run
--- ============================================================
 create table if not exists public.step_runs (
   id               uuid primary key default gen_random_uuid(),
   workflow_run_id  uuid not null references public.workflow_runs(id) on delete cascade,
@@ -137,11 +104,6 @@ create table if not exists public.step_runs (
 create index if not exists idx_step_runs_workflow_run_id on public.step_runs(workflow_run_id);
 create index if not exists idx_step_runs_org_id on public.step_runs(org_id);
 
--- ============================================================
--- workflow_artifacts — where a `db_write` step actually persists its
--- result ("saves a result into your own tables"), separate from
--- step_runs.output so it's clearly a first-class, queryable artifact.
--- ============================================================
 create table if not exists public.workflow_artifacts (
   id              uuid primary key default gen_random_uuid(),
   org_id          uuid not null references public.organizations(id) on delete cascade,
@@ -154,13 +116,6 @@ create table if not exists public.workflow_artifacts (
 create index if not exists idx_workflow_artifacts_org_id on public.workflow_artifacts(org_id);
 create index if not exists idx_workflow_artifacts_run_id on public.workflow_artifacts(workflow_run_id);
 
--- ============================================================
--- external_events — the "watched table" for the Database Event
--- trigger type. An external integration (or a test script) inserts a
--- row here; a Hasura Event Trigger on INSERT calls the run-starting
--- function, which matches it against active workflow_triggers of
--- type 'event' by org_id + source and starts a run.
--- ============================================================
 create table if not exists public.external_events (
   id         uuid primary key default gen_random_uuid(),
   org_id     uuid not null references public.organizations(id) on delete cascade,
@@ -170,12 +125,6 @@ create table if not exists public.external_events (
 );
 
 create index if not exists idx_external_events_org_id on public.external_events(org_id);
-
--- ============================================================
--- org_id auto-population triggers
--- (org_id is never writable by clients — see Hasura insert permission
---  column lists — it is always derived server-side from the parent row)
--- ============================================================
 
 create or replace function public.set_org_id_from_workflow()
 returns trigger as $$
@@ -209,26 +158,6 @@ create or replace trigger trg_step_runs_org_id
   before insert on public.step_runs
   for each row execute function public.set_org_id_from_workflow_run();
 
--- Keep Hasura Auth's allowed-roles in sync with org membership, so a
--- user who is e.g. owner in one org and viewer in another has BOTH
--- roles available to select via the X-Hasura-Role header. This is
--- safe to be "generous" with because every insert/update permission
--- and every Action handler re-derives the caller's REAL role for the
--- SPECIFIC org being touched from org_members using x-hasura-user-id
--- (verified by the JWT) — the X-Hasura-Role header is only ever used
--- to pick which permission ruleset to attempt, never trusted as the
--- authorization decision itself. See docs/writeup.md.
---
--- NOTE: this assumes nhost's default `auth.user_roles(user_id, role)`
--- table with a unique (user_id, role) constraint. Verify this against
--- your project's auth schema version — if it differs, grant roles via
--- the nhost dashboard instead (Settings → Roles / user's allowed
--- roles) and drop this trigger.
---
--- auth.user_roles.role has a foreign key into auth.roles — nhost only
--- pre-registers 'user', 'anonymous', 'me' there, so our custom role
--- names must be registered too or every org_members insert fails with
--- a foreign key violation (found by testing against the live project).
 insert into auth.roles (role) values ('owner'), ('editor'), ('viewer')
   on conflict (role) do nothing;
 
@@ -246,7 +175,6 @@ create or replace trigger trg_org_members_sync_role
   after insert on public.org_members
   for each row execute function public.sync_auth_user_role();
 
--- updated_at bookkeeping
 create or replace function public.touch_updated_at()
 returns trigger as $$
 begin
@@ -259,12 +187,6 @@ create or replace trigger trg_workflows_updated_at
   before update on public.workflows
   for each row execute function public.touch_updated_at();
 
--- ============================================================
--- Aggregation view — org-level usage this month + avg run duration
--- Tracked in Hasura and exposed via an object relationship on
--- `organizations` (see metadata) so the frontend can query
--- `organization { usage_stats { runs_this_month avg_run_duration_seconds } }`
--- ============================================================
 create or replace view public.org_usage_stats as
 select
   o.id as org_id,
