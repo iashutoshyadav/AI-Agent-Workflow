@@ -27,44 +27,76 @@ export default function AuthPage() {
   const loading = signingIn || signingUp;
 
   return (
-    <div className="container" style={{ maxWidth: 420 }}>
-      <h1>AI Agent Workflow Builder</h1>
-      <div className="card">
-        <div className="row" style={{ marginBottom: 16 }}>
-          <button onClick={() => setMode("signin")} disabled={mode === "signin"}>
+    <div className="auth-shell">
+      <div className="auth-card">
+        <div className="auth-brand">
+          <div className="auth-logo">AI</div>
+          <div>
+            <h1 className="auth-title">AI Agent Workflow Builder</h1>
+            <p className="auth-tagline">
+              Chain LLM calls, API requests, and human approvals into automated workflows for your team.
+            </p>
+          </div>
+        </div>
+
+        <div className="tabs">
+          <button
+            type="button"
+            className={mode === "signin" ? "tab active" : "tab"}
+            onClick={() => setMode("signin")}
+          >
             Sign in
           </button>
-          <button onClick={() => setMode("signup")} disabled={mode === "signup"}>
+          <button
+            type="button"
+            className={mode === "signup" ? "tab active" : "tab"}
+            onClick={() => setMode("signup")}
+          >
             Sign up
           </button>
         </div>
-        <form onSubmit={submit}>
-          <div style={{ marginBottom: 10 }}>
+
+        <form onSubmit={submit} noValidate>
+          <label className="field">
+            <span className="field-label">Email</span>
             <input
               type="email"
-              placeholder="email"
+              autoComplete="email"
+              placeholder="you@company.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              style={{ width: "100%" }}
             />
-          </div>
-          <div style={{ marginBottom: 10 }}>
+          </label>
+
+          <label className="field">
+            <span className="field-label">Password</span>
             <input
               type="password"
-              placeholder="password"
+              autoComplete={mode === "signin" ? "current-password" : "new-password"}
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={8}
-              style={{ width: "100%" }}
             />
-          </div>
-          <button className="primary" type="submit" disabled={loading}>
-            {mode === "signin" ? "Sign in" : "Sign up"}
+            {mode === "signup" ? <span className="field-hint">At least 8 characters.</span> : null}
+          </label>
+
+          <button className="primary full" type="submit" disabled={loading}>
+            {loading ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
           </button>
-          {error ? <p style={{ color: "#f87171" }}>{error.message}</p> : null}
+
+          {error ? <div className="error-box">{error.message}</div> : null}
         </form>
+
+        <p className="auth-footnote">
+          {mode === "signin" ? (
+            <>New here? Click "Sign up" above to create an account.</>
+          ) : (
+            <>After signing up, you'll create or join an organization next.</>
+          )}
+        </p>
       </div>
     </div>
   );
