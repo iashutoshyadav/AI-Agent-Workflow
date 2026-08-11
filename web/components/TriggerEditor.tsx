@@ -33,11 +33,16 @@ export default function TriggerEditor({
 
   return (
     <div>
+      {triggers.length === 0 ? (
+        <div className="empty-state" style={{ marginBottom: 16 }}>
+          No triggers yet — the workflow can still be run manually from its page.
+        </div>
+      ) : null}
       {triggers.map((t, i) => {
         const locked = t.type === "webhook" && !isOwner;
         return (
           <div className="card" key={t.id ?? i}>
-            <div className="row" style={{ justifyContent: "space-between" }}>
+            <div className="row between">
               <select value={t.type} onChange={(e) => update(i, { type: e.target.value })} disabled={locked}>
                 {TRIGGER_TYPES.map((tt) => (
                   <option key={tt} value={tt} disabled={tt === "webhook" && !isOwner}>
@@ -46,8 +51,8 @@ export default function TriggerEditor({
                   </option>
                 ))}
               </select>
-              <button className="danger" onClick={() => remove(i)} disabled={locked}>
-                ✕
+              <button className="danger small" onClick={() => remove(i)} disabled={locked}>
+                Remove
               </button>
             </div>
             <TriggerHint type={t.type} />
@@ -55,7 +60,7 @@ export default function TriggerEditor({
               value={t.config}
               onChange={(e) => update(i, { config: e.target.value })}
               rows={3}
-              style={{ width: "100%", marginTop: 8, fontFamily: "monospace" }}
+              style={{ width: "100%", marginTop: 8, fontFamily: "ui-monospace, monospace", fontSize: 13 }}
               disabled={locked}
             />
           </div>
@@ -73,5 +78,9 @@ function TriggerHint({ type }: { type: string }) {
     scheduled: '{"cron": "*/10 * * * *"} — standard 5-field cron',
     event: '{"source": "orders"} — matches external_events.source, or "*" for any',
   };
-  return <div style={{ fontSize: 12, color: "#a1a1aa" }}>{hints[type]}</div>;
+  return (
+    <div className="faint" style={{ marginTop: 10 }}>
+      <code style={{ fontSize: 11 }}>{hints[type]}</code>
+    </div>
+  );
 }

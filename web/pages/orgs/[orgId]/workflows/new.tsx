@@ -7,6 +7,7 @@ import { ORG_WORKFLOWS, CREATE_WORKFLOW } from "@/lib/gql";
 import { roleHeader, OrgRole } from "@/lib/role";
 import StepEditor, { StepDraft } from "@/components/StepEditor";
 import TriggerEditor, { TriggerDraft } from "@/components/TriggerEditor";
+import TopNav from "@/components/TopNav";
 
 export default function NewWorkflowPage() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function NewWorkflowPage() {
   const userId = useUserId();
   const { data } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId, ...roleHeader("user") });
   const myRole: OrgRole | undefined = data?.org_members.find((m: any) => m.user_id === userId)?.role;
+  const orgName = data?.organizations_by_pk?.name;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -23,9 +25,12 @@ export default function NewWorkflowPage() {
 
   if (myRole === "viewer") {
     return (
-      <div className="container">
-        <p>Viewers can't create workflows.</p>
-      </div>
+      <>
+        <TopNav crumbs={orgName ? [{ label: orgName, href: `/orgs/${orgId}` }] : undefined} />
+        <div className="container">
+          <div className="empty-state">Viewers can't create workflows.</div>
+        </div>
+      </>
     );
   }
 
@@ -52,28 +57,47 @@ export default function NewWorkflowPage() {
   }
 
   return (
-    <div className="container">
-      <Link href={`/orgs/${orgId}`}>← back</Link>
-      <h1>New workflow</h1>
-      <form onSubmit={submit}>
-        <div className="card">
-          <input placeholder="Workflow name" value={name} onChange={(e) => setName(e.target.value)} required style={{ width: "100%", marginBottom: 8 }} />
-          <textarea placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={{ width: "100%" }} />
-        </div>
+    <>
+      <TopNav crumbs={[{ label: orgName ?? "…", href: `/orgs/${orgId}` }, { label: "New workflow" }]} />
+      <div className="container">
+        <Link href={`/orgs/${orgId}`}>← back</Link>
+        <h1 style={{ marginTop: 8 }}>New workflow</h1>
+        <form onSubmit={submit}>
+          <div className="card">
+            <label className="field">
+              <span className="field-label">Name</span>
+              <input placeholder="e.g. Support Ticket Triage" value={name} onChange={(e) => setName(e.target.value)} required style={{ width: "100%" }} />
+            </label>
+            <label className="field" style={{ marginBottom: 0 }}>
+              <span className="field-label">Description</span>
+              <textarea
+                placeholder="What does this workflow do?"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                style={{ width: "100%" }}
+              />
+            </label>
+          </div>
 
-        <h3>Steps</h3>
-        <StepEditor steps={steps} onChange={setSteps} isOwner={myRole === "owner"} />
+          <div className="section-header">
+            <h2 style={{ margin: 0 }}>Steps</h2>
+          </div>
+          <StepEditor steps={steps} onChange={setSteps} isOwner={myRole === "owner"} />
 
-        <h3>Triggers</h3>
-        <TriggerEditor triggers={triggers} onChange={setTriggers} isOwner={myRole === "owner"} />
+          <div className="section-header">
+            <h2 style={{ margin: 0 }}>Triggers</h2>
+          </div>
+          <TriggerEditor triggers={triggers} onChange={setTriggers} isOwner={myRole === "owner"} />
 
-        <div style={{ marginTop: 16 }}>
-          <button className="primary" type="submit" disabled={loading || !name}>
-            Create workflow
-          </button>
-          {error ? <p style={{ color: "#f87171" }}>{error.message}</p> : null}
-        </div>
-      </form>
-    </div>
+          <div style={{ marginTop: 20 }}>
+            <button className="primary" type="submit" disabled={loading || !name}>
+              {loading ? "Creating…" : "Create workflow"}
+            </button>
+            {error ? <div className="error-box">{error.message}</div> : null}
+          </div>
+        </form>
+      </div>
+    </>
   );
 }

@@ -1,5 +1,3 @@
-import { useState } from "react";
-
 export interface StepDraft {
   id?: string;
   position: number;
@@ -56,14 +54,31 @@ export default function StepEditor({
 
   return (
     <div>
+      {steps.length === 0 ? <div className="empty-state" style={{ marginBottom: 16 }}>No steps yet.</div> : null}
       {steps.map((step, i) => {
         const locked = OWNER_ONLY_TYPES.has(step.type) && !isOwner;
         return (
           <div className="card" key={step.id ?? i}>
-            <div className="row" style={{ justifyContent: "space-between" }}>
-              <div className="row">
-                <span className="badge">{i + 1}</span>
-                <input value={step.name} onChange={(e) => update(i, { name: e.target.value })} disabled={locked} />
+            <div className="row between wrap">
+              <div className="row" style={{ flex: 1, minWidth: 220 }}>
+                <span
+                  style={{
+                    flex: "none",
+                    width: 24,
+                    height: 24,
+                    borderRadius: 999,
+                    background: "var(--primary-bg)",
+                    color: "var(--primary)",
+                    fontSize: 12,
+                    fontWeight: 700,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  {i + 1}
+                </span>
+                <input value={step.name} onChange={(e) => update(i, { name: e.target.value })} disabled={locked} style={{ flex: 1, minWidth: 120 }} />
                 <select value={step.type} onChange={(e) => update(i, { type: e.target.value })} disabled={locked}>
                   {STEP_TYPES.map((t) => (
                     <option key={t} value={t} disabled={OWNER_ONLY_TYPES.has(t) && !isOwner}>
@@ -74,10 +89,10 @@ export default function StepEditor({
                 </select>
               </div>
               <div className="row">
-                <button onClick={() => move(i, -1)} disabled={i === 0}>↑</button>
-                <button onClick={() => move(i, 1)} disabled={i === steps.length - 1}>↓</button>
-                <button className="danger" onClick={() => remove(i)} disabled={locked}>
-                  ✕
+                <button className="small" onClick={() => move(i, -1)} disabled={i === 0} title="Move up">↑</button>
+                <button className="small" onClick={() => move(i, 1)} disabled={i === steps.length - 1} title="Move down">↓</button>
+                <button className="danger small" onClick={() => remove(i)} disabled={locked} title="Remove step">
+                  Remove
                 </button>
               </div>
             </div>
@@ -86,7 +101,7 @@ export default function StepEditor({
               value={step.config}
               onChange={(e) => update(i, { config: e.target.value })}
               rows={4}
-              style={{ width: "100%", marginTop: 8, fontFamily: "monospace" }}
+              style={{ width: "100%", marginTop: 8, fontFamily: "ui-monospace, monospace", fontSize: 13 }}
               disabled={locked}
             />
           </div>
@@ -107,5 +122,9 @@ function ConfigHint({ type }: { type: string }) {
       '{"field": "output.text", "operator": "contains", "value": "urgent", "on_true": {"action":"continue"}, "on_false": {"action":"skip_to","position": 3}}',
     approval_gate: "{}",
   };
-  return <div style={{ fontSize: 12, color: "#a1a1aa" }}>config example: {hints[type]}</div>;
+  return (
+    <div className="faint" style={{ marginTop: 10 }}>
+      config example: <code style={{ fontSize: 11 }}>{hints[type]}</code>
+    </div>
+  );
 }

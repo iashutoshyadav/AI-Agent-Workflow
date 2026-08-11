@@ -18,6 +18,7 @@ import {
 import { roleHeader, OrgRole } from "@/lib/role";
 import StepEditor, { StepDraft } from "@/components/StepEditor";
 import TriggerEditor, { TriggerDraft } from "@/components/TriggerEditor";
+import TopNav from "@/components/TopNav";
 
 export default function WorkflowPage() {
   const router = useRouter();
@@ -35,6 +36,7 @@ export default function WorkflowPage() {
 
   const myRole: OrgRole | undefined = data?.org_members.find((m: any) => m.user_id === userId)?.role;
   const workflow = data?.workflows.find((w: any) => w.id === workflowId);
+  const orgName = data?.organizations_by_pk?.name;
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -59,7 +61,16 @@ export default function WorkflowPage() {
   const [triggerRun, { loading: triggering }] = useMutation(TRIGGER_WORKFLOW_RUN);
   const [saving, setSaving] = useState(false);
 
-  if (!workflow) return <div className="container">Loading…</div>;
+  if (!workflow) {
+    return (
+      <>
+        <TopNav crumbs={orgName ? [{ label: orgName, href: `/orgs/${orgId}` }] : undefined} />
+        <div className="container">
+          <p className="muted">Loading…</p>
+        </div>
+      </>
+    );
+  }
 
   async function save() {
     setSaving(true);
@@ -116,53 +127,72 @@ export default function WorkflowPage() {
   }
 
   return (
-    <div className="container">
-      <Link href={`/orgs/${orgId}`}>← back</Link>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1>{workflow.name}</h1>
+    <>
+      <TopNav crumbs={[{ label: orgName ?? "…", href: `/orgs/${orgId}` }, { label: workflow.name }]} />
+      <div className="container">
+        <Link href={`/orgs/${orgId}`}>← back</Link>
+        <div className="row between" style={{ marginTop: 8 }}>
+          <h1>{workflow.name}</h1>
+          {myRole !== "viewer" ? (
+            <button className="primary" onClick={runNow} disabled={triggering}>
+              {triggering ? "Running…" : "▶ Run"}
+            </button>
+          ) : null}
+        </div>
+
         {myRole !== "viewer" ? (
-          <button className="primary" onClick={runNow} disabled={triggering}>
-            {triggering ? "Running…" : "Run"}
-          </button>
-        ) : null}
-      </div>
-
-      {myRole !== "viewer" ? (
-        <>
-          <div className="card">
-            <input value={name} onChange={(e) => setName(e.target.value)} style={{ width: "100%", marginBottom: 8 }} />
-            <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={{ width: "100%" }} />
-          </div>
-
-          <h3>Steps</h3>
-          <StepEditor steps={steps} onChange={setSteps} isOwner={myRole === "owner"} />
-
-          <h3>Triggers</h3>
-          <TriggerEditor triggers={triggers} onChange={setTriggers} isOwner={myRole === "owner"} />
-
-          <button className="primary" onClick={save} disabled={saving} style={{ marginTop: 12 }}>
-            {saving ? "Saving…" : "Save changes"}
-          </button>
-        </>
-      ) : (
-        <div className="card">
-          {steps.map((s) => (
-            <div key={s.id}>
-              {s.position + 1}. {s.name} ({s.type})
+          <>
+            <div className="card">
+              <label className="field">
+                <span className="field-label">Name</span>
+                <input value={name} onChange={(e) => setName(e.target.value)} style={{ width: "100%" }} />
+              </label>
+              <label className="field" style={{ marginBottom: 0 }}>
+                <span className="field-label">Description</span>
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={2} style={{ width: "100%" }} />
+              </label>
             </div>
-          ))}
-        </div>
-      )}
 
-      <h3>Run history</h3>
-      {(runsData?.workflow_runs ?? []).map((r: any) => (
-        <div className="card row" key={r.id} style={{ justifyContent: "space-between" }}>
-          <Link href={`/orgs/${orgId}/runs/${r.id}`}>
-            {new Date(r.created_at).toLocaleString()} — {r.trigger_type}
-          </Link>
-          <span className={`badge ${r.status}`}>{r.status}</span>
+            <div className="section-header">
+              <h2 style={{ margin: 0 }}>Steps</h2>
+            </div>
+            <StepEditor steps={steps} onChange={setSteps} isOwner={myRole === "owner"} />
+
+            <div className="section-header">
+              <h2 style={{ margin: 0 }}>Triggers</h2>
+            </div>
+            <TriggerEditor triggers={triggers} onChange={setTriggers} isOwner={myRole === "owner"} />
+
+            <button className="primary" onClick={save} disabled={saving} style={{ marginTop: 16 }}>
+              {saving ? "Saving…" : "Save changes"}
+            </button>
+          </>
+        ) : (
+          <div className="card">
+            {steps.map((s) => (
+              <div key={s.id} className="muted" style={{ padding: "4px 0" }}>
+                {s.position + 1}. {s.name} <span className="faint">({s.type})</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className="section-header">
+          <h2 style={{ margin: 0 }}>Run history</h2>
         </div>
-      ))}
-    </div>
+        {(runsData?.workflow_runs ?? []).length === 0 ? (
+          <div className="empty-state">No runs yet.</div>
+        ) : (
+          (runsData?.workflow_runs ?? []).map((r: any) => (
+            <div className="card row between" key={r.id}>
+              <Link href={`/orgs/${orgId}/runs/${r.id}`}>
+                {new Date(r.created_at).toLocaleString()} <span className="faint">· {r.trigger_type}</span>
+              </Link>
+              <span className={`badge ${r.status}`}>{r.status}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </>
   );
 }

@@ -5,16 +5,13 @@ import { useQuery, useMutation } from "@apollo/client";
 import { useUserId } from "@nhost/react";
 import { ORG_WORKFLOWS, TRIGGER_WORKFLOW_RUN, INSERT_ORG_MEMBER, DELETE_ORG_MEMBER } from "@/lib/gql";
 import { roleHeader, OrgRole } from "@/lib/role";
+import TopNav from "@/components/TopNav";
 
 export default function OrgPage() {
   const router = useRouter();
   const orgId = router.query.orgId as string;
   const userId = useUserId();
 
-  // "viewer" here is just a safe universal read role — select
-  // permissions are identical across owner/editor/viewer, and we
-  // don't know the real one until this query's own org_members
-  // field comes back.
   const { data, loading, error, refetch } = useQuery(ORG_WORKFLOWS, {
     variables: { orgId },
     skip: !orgId,
@@ -30,14 +27,39 @@ export default function OrgPage() {
   const [memberUserId, setMemberUserId] = useState("");
   const [memberRole, setMemberRole] = useState<OrgRole>("viewer");
 
-  if (loading) return <div className="container">Loading…</div>;
-  if (error) return <div className="container" style={{ color: "#f87171" }}>{error.message}</div>;
+  if (loading) {
+    return (
+      <>
+        <TopNav />
+        <div className="container">
+          <p className="muted">Loading…</p>
+        </div>
+      </>
+    );
+  }
+  if (error) {
+    return (
+      <>
+        <TopNav />
+        <div className="container">
+          <div className="error-box">{error.message}</div>
+        </div>
+      </>
+    );
+  }
   if (!data?.organizations_by_pk) {
     return (
-      <div className="container">
-        <p>Org not found, or you're not a member of it.</p>
-        <Link href="/orgs">← back</Link>
-      </div>
+      <>
+        <TopNav />
+        <div className="container">
+          <div className="empty-state">
+            Org not found, or you're not a member of it.
+            <div style={{ marginTop: 12 }}>
+              <Link href="/orgs">← all orgs</Link>
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
@@ -71,97 +93,129 @@ export default function OrgPage() {
   }
 
   return (
-    <div className="container">
-      <Link href="/orgs">← all orgs</Link>
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <h1>
-          {org.name} <span className="badge">{myRole}</span>
-        </h1>
-        {myRole !== "viewer" ? <Link href={`/orgs/${orgId}/workflows/new`}><button className="primary">+ New workflow</button></Link> : null}
-      </div>
-
-      <div className="card">
-        <strong>Usage this period</strong>
-        <div style={{ fontSize: 13, color: "#a1a1aa", marginTop: 6 }}>
-          {org.quota_calls_used} / {org.quota_calls_allowed} calls used
-          {org.usage_stats ? (
-            <>
-              {" · "}
-              {org.usage_stats.runs_this_month} runs this month
-              {org.usage_stats.avg_run_duration_seconds != null
-                ? ` · avg run ${Math.round(org.usage_stats.avg_run_duration_seconds)}s`
-                : ""}
-            </>
+    <>
+      <TopNav crumbs={[{ label: org.name }]} />
+      <div className="container">
+        <Link href="/orgs">← all orgs</Link>
+        <div className="row between" style={{ marginTop: 8 }}>
+          <h1>
+            {org.name} <span className="badge role">{myRole}</span>
+          </h1>
+          {myRole !== "viewer" ? (
+            <Link href={`/orgs/${orgId}/workflows/new`}>
+              <button className="primary">+ New workflow</button>
+            </Link>
           ) : null}
         </div>
-        <div className="quota-bar">
-          <div
-            className="quota-bar-fill"
-            style={{ width: `${Math.min(100, (org.quota_calls_used / Math.max(1, org.quota_calls_allowed)) * 100)}%` }}
-          />
-        </div>
-      </div>
 
-      <h2>Workflows</h2>
-      {(data.workflows ?? []).map((wf: any) => {
-        const lastRun = wf.workflow_runs[0];
-        return (
-          <div className="card" key={wf.id}>
-            <div className="row" style={{ justifyContent: "space-between" }}>
-              <div>
-                <Link href={`/orgs/${orgId}/workflows/${wf.id}`}>
-                  <strong>{wf.name}</strong>
-                </Link>
-                {lastRun ? <span className={`badge ${lastRun.status}`} style={{ marginLeft: 8 }}>{lastRun.status}</span> : null}
-              </div>
-              {myRole !== "viewer" ? (
-                <button className="primary" onClick={() => runNow(wf.id)} disabled={triggering}>
-                  Run
-                </button>
-              ) : null}
-            </div>
-            <div style={{ fontSize: 13, color: "#a1a1aa", marginTop: 6 }}>
-              {wf.workflow_steps.length} steps ({wf.workflow_steps.map((s: any) => s.type).join(", ")}) ·{" "}
-              {wf.workflow_triggers.length ? wf.workflow_triggers.map((t: any) => t.type).join(", ") : "no trigger"}
-            </div>
-          </div>
-        );
-      })}
-
-      {myRole === "owner" ? (
         <div className="card">
-          <h3>Members</h3>
-          {data.org_members.map((m: any) => (
-            <div className="row" key={m.id} style={{ justifyContent: "space-between", marginBottom: 4 }}>
-              <span>
-                <code>{m.user_id}</code> — {m.role}
-              </span>
-              {m.user_id !== userId ? (
-                <button
-                  className="danger"
-                  onClick={async () => {
-                    await removeMember({ variables: { id: m.id }, ...roleHeader(myRole) });
-                    refetch();
-                  }}
-                >
-                  Remove
-                </button>
-              ) : null}
-            </div>
-          ))}
-          <form onSubmit={handleAddMember} className="row" style={{ marginTop: 10 }}>
-            <input placeholder="user id (uuid)" value={memberUserId} onChange={(e) => setMemberUserId(e.target.value)} style={{ flex: 1 }} />
-            <select value={memberRole} onChange={(e) => setMemberRole(e.target.value as OrgRole)}>
-              <option value="owner">owner</option>
-              <option value="editor">editor</option>
-              <option value="viewer">viewer</option>
-            </select>
-            <button className="primary" type="submit" disabled={addingMember}>
-              Add
-            </button>
-          </form>
+          <strong>Usage this period</strong>
+          <div className="muted" style={{ marginTop: 6 }}>
+            {org.quota_calls_used} / {org.quota_calls_allowed} calls used
+            {org.usage_stats ? (
+              <>
+                {" · "}
+                {org.usage_stats.runs_this_month} runs this month
+                {org.usage_stats.avg_run_duration_seconds != null
+                  ? ` · avg run ${Math.round(org.usage_stats.avg_run_duration_seconds)}s`
+                  : ""}
+              </>
+            ) : null}
+          </div>
+          <div className="quota-bar">
+            <div
+              className="quota-bar-fill"
+              style={{ width: `${Math.min(100, (org.quota_calls_used / Math.max(1, org.quota_calls_allowed)) * 100)}%` }}
+            />
+          </div>
         </div>
-      ) : null}
-    </div>
+
+        <div className="section-header">
+          <h2 style={{ margin: 0 }}>Workflows</h2>
+        </div>
+
+        {(data.workflows ?? []).length === 0 ? (
+          <div className="empty-state">
+            No workflows yet.
+            {myRole !== "viewer" ? (
+              <>
+                {" "}
+                <Link href={`/orgs/${orgId}/workflows/new`}>Create your first one →</Link>
+              </>
+            ) : null}
+          </div>
+        ) : null}
+
+        {(data.workflows ?? []).map((wf: any) => {
+          const lastRun = wf.workflow_runs[0];
+          return (
+            <div className="card" key={wf.id}>
+              <div className="row between">
+                <div className="row">
+                  <Link href={`/orgs/${orgId}/workflows/${wf.id}`}>
+                    <strong>{wf.name}</strong>
+                  </Link>
+                  {lastRun ? <span className={`badge ${lastRun.status}`}>{lastRun.status}</span> : null}
+                </div>
+                {myRole !== "viewer" ? (
+                  <button className="primary small" onClick={() => runNow(wf.id)} disabled={triggering}>
+                    {triggering ? "Running…" : "Run"}
+                  </button>
+                ) : null}
+              </div>
+              <div className="muted" style={{ marginTop: 8 }}>
+                {wf.workflow_steps.length} steps ({wf.workflow_steps.map((s: any) => s.type).join(", ")}) ·{" "}
+                {wf.workflow_triggers.length ? wf.workflow_triggers.map((t: any) => t.type).join(", ") : "no trigger"}
+              </div>
+            </div>
+          );
+        })}
+
+        {myRole === "owner" ? (
+          <>
+            <div className="section-header">
+              <h2 style={{ margin: 0 }}>Members</h2>
+            </div>
+            <div className="card">
+              {data.org_members.map((m: any) => (
+                <div className="row between" key={m.id} style={{ marginBottom: 8 }}>
+                  <span className="row">
+                    <code>{m.user_id}</code>
+                    <span className="badge role">{m.role}</span>
+                  </span>
+                  {m.user_id !== userId ? (
+                    <button
+                      className="danger small"
+                      onClick={async () => {
+                        await removeMember({ variables: { id: m.id }, ...roleHeader(myRole) });
+                        refetch();
+                      }}
+                    >
+                      Remove
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+              <form onSubmit={handleAddMember} className="row" style={{ marginTop: 14 }}>
+                <input
+                  placeholder="user id (uuid)"
+                  value={memberUserId}
+                  onChange={(e) => setMemberUserId(e.target.value)}
+                  style={{ flex: 1 }}
+                />
+                <select value={memberRole} onChange={(e) => setMemberRole(e.target.value as OrgRole)}>
+                  <option value="owner">owner</option>
+                  <option value="editor">editor</option>
+                  <option value="viewer">viewer</option>
+                </select>
+                <button className="primary" type="submit" disabled={addingMember || !memberUserId.trim()}>
+                  Add
+                </button>
+              </form>
+            </div>
+          </>
+        ) : null}
+      </div>
+    </>
   );
 }
