@@ -4,13 +4,21 @@ import { useRouter } from "next/router";
 import { useQuery, useMutation } from "@apollo/client";
 import { useUserId, useAuthenticationStatus, useSignOut } from "@nhost/react";
 import { MY_ORGS, CREATE_ORGANIZATION } from "@/lib/gql";
+import { roleHeader } from "@/lib/role";
 
 export default function OrgsPage() {
   const router = useRouter();
   const userId = useUserId();
   const { isAuthenticated, isLoading: authLoading } = useAuthenticationStatus();
   const { signOut } = useSignOut();
-  const { data, loading, error, refetch } = useQuery(MY_ORGS, { skip: !isAuthenticated });
+  // Read-only, so any of owner/editor/viewer works here: the
+  // select_permissions filter on organizations/org_members is
+  // identical across all three roles (membership-only) — this query
+  // runs before we know which specific role the user has in any org.
+  const { data, loading, error, refetch } = useQuery(MY_ORGS, {
+    skip: !isAuthenticated,
+    ...roleHeader("viewer"),
+  });
   const [createOrg, { loading: creating }] = useMutation(CREATE_ORGANIZATION);
   const [newName, setNewName] = useState("");
 

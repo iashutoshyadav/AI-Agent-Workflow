@@ -25,11 +25,12 @@ export default function WorkflowPage() {
   const workflowId = router.query.workflowId as string;
   const userId = useUserId();
 
-  const { data, refetch } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId });
+  const { data, refetch } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId, ...roleHeader("viewer") });
   const { data: runsData, refetch: refetchRuns } = useQuery(WORKFLOW_RUNS, {
     variables: { workflowId },
     skip: !workflowId,
     pollInterval: 10000,
+    ...roleHeader("viewer"),
   });
 
   const myRole: OrgRole | undefined = data?.org_members.find((m: any) => m.user_id === userId)?.role;

@@ -11,10 +11,15 @@ export default function OrgPage() {
   const orgId = router.query.orgId as string;
   const userId = useUserId();
 
+  // "viewer" here is just a safe universal read role — select
+  // permissions are identical across owner/editor/viewer, and we
+  // don't know the real one until this query's own org_members
+  // field comes back.
   const { data, loading, error, refetch } = useQuery(ORG_WORKFLOWS, {
     variables: { orgId },
     skip: !orgId,
     pollInterval: 15000,
+    ...roleHeader("viewer"),
   });
 
   const myRole: OrgRole | undefined = data?.org_members.find((m: any) => m.user_id === userId)?.role;

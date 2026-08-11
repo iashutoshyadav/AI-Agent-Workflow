@@ -58,6 +58,18 @@
         filter:
           org_members:
             user_id: { _eq: X-Hasura-User-Id }
+    # "user" is nhost's session default role — every authenticated
+    # request that doesn't set X-Hasura-Role explicitly (e.g. a
+    # websocket subscription, whose per-operation headers aren't
+    # always reliably forwarded the way HTTP query headers are) lands
+    # here. Reads are safe to allow with the same membership-only
+    # filter as viewer; writes are NOT granted to this role anywhere.
+    - role: user
+      permission:
+        columns: [id, name, quota_calls_allowed, quota_calls_used, quota_period_start, created_at]
+        filter:
+          org_members:
+            user_id: { _eq: X-Hasura-User-Id }
 
 - table:
     schema: public
@@ -93,6 +105,13 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
+    - role: user
+      permission:
+        columns: [org_id, quota_calls_used, quota_calls_allowed, runs_this_month, avg_run_duration_seconds]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
 
 - table:
     schema: public
@@ -117,6 +136,13 @@
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
     - role: viewer
+      permission:
+        columns: [id, org_id, user_id, role, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
+    - role: user
       permission:
         columns: [id, org_id, user_id, role, created_at]
         filter:
@@ -206,6 +232,13 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
+    - role: user
+      permission:
+        columns: [id, org_id, name, description, created_by, created_at, updated_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
   insert_permissions:
     - role: owner
       permission:
@@ -281,6 +314,13 @@
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
     - role: viewer
+      permission:
+        columns: [id, workflow_id, org_id, position, type, name, config, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
+    - role: user
       permission:
         columns: [id, workflow_id, org_id, position, type, name, config, created_at]
         filter:
@@ -383,6 +423,13 @@
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
     - role: viewer
+      permission:
+        columns: [id, workflow_id, org_id, type, config, is_active, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
+    - role: user
       permission:
         columns: [id, workflow_id, org_id, type, config, is_active, created_at]
         filter:
@@ -492,6 +539,13 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
+    - role: user
+      permission:
+        columns: [id, workflow_id, org_id, status, trigger_type, triggered_by, started_at, finished_at, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
   # `notify` step type is implemented as an Event Trigger rather than
   # inline code in the engine: the engine writes a step_runs row for a
   # notify step, and this trigger fires on that INSERT to actually
@@ -546,6 +600,13 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
+    - role: user
+      permission:
+        columns: [id, org_id, workflow_run_id, step_run_id, data, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
 
 - table:
     schema: public
@@ -570,6 +631,13 @@
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
     - role: viewer
+      permission:
+        columns: [id, org_id, source, payload, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
+    - role: user
       permission:
         columns: [id, org_id, source, payload, created_at]
         filter:
@@ -642,6 +710,13 @@
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
     - role: viewer
+      permission:
+        columns: [id, workflow_run_id, workflow_step_id, org_id, status, input, output, error, attempt_count, approved_by, approved_at, started_at, finished_at, created_at]
+        filter:
+          organization:
+            org_members:
+              user_id: { _eq: X-Hasura-User-Id }
+    - role: user
       permission:
         columns: [id, workflow_run_id, workflow_step_id, org_id, status, input, output, error, attempt_count, approved_by, approved_at, started_at, finished_at, created_at]
         filter:

@@ -12,7 +12,7 @@ export default function NewWorkflowPage() {
   const router = useRouter();
   const orgId = router.query.orgId as string;
   const userId = useUserId();
-  const { data } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId });
+  const { data } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId, ...roleHeader("viewer") });
   const myRole: OrgRole | undefined = data?.org_members.find((m: any) => m.user_id === userId)?.role;
 
   const [name, setName] = useState("");
