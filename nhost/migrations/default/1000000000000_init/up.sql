@@ -15,7 +15,7 @@ create extension if not exists pgcrypto;
 -- ============================================================
 -- organizations
 -- ============================================================
-create table public.organizations (
+create table if not exists public.organizations (
   id                  uuid primary key default gen_random_uuid(),
   name                text not null,
   quota_calls_allowed integer not null default 1000,
@@ -27,7 +27,7 @@ create table public.organizations (
 -- ============================================================
 -- org_members — user_id, org_id, role
 -- ============================================================
-create table public.org_members (
+create table if not exists public.org_members (
   id         uuid primary key default gen_random_uuid(),
   org_id     uuid not null references public.organizations(id) on delete cascade,
   user_id    uuid not null references auth.users(id) on delete cascade,
@@ -36,13 +36,13 @@ create table public.org_members (
   unique (org_id, user_id)
 );
 
-create index idx_org_members_user_id on public.org_members(user_id);
-create index idx_org_members_org_id on public.org_members(org_id);
+create index if not exists idx_org_members_user_id on public.org_members(user_id);
+create index if not exists idx_org_members_org_id on public.org_members(org_id);
 
 -- ============================================================
 -- workflows
 -- ============================================================
-create table public.workflows (
+create table if not exists public.workflows (
   id          uuid primary key default gen_random_uuid(),
   org_id      uuid not null references public.organizations(id) on delete cascade,
   name        text not null,
@@ -52,12 +52,12 @@ create table public.workflows (
   updated_at  timestamptz not null default now()
 );
 
-create index idx_workflows_org_id on public.workflows(org_id);
+create index if not exists idx_workflows_org_id on public.workflows(org_id);
 
 -- ============================================================
 -- workflow_steps — ordered, typed, JSONB config
 -- ============================================================
-create table public.workflow_steps (
+create table if not exists public.workflow_steps (
   id          uuid primary key default gen_random_uuid(),
   workflow_id uuid not null references public.workflows(id) on delete cascade,
   org_id      uuid not null references public.organizations(id) on delete cascade,
@@ -72,13 +72,13 @@ create table public.workflow_steps (
   unique (workflow_id, position)
 );
 
-create index idx_workflow_steps_workflow_id on public.workflow_steps(workflow_id);
-create index idx_workflow_steps_org_id on public.workflow_steps(org_id);
+create index if not exists idx_workflow_steps_workflow_id on public.workflow_steps(workflow_id);
+create index if not exists idx_workflow_steps_org_id on public.workflow_steps(org_id);
 
 -- ============================================================
 -- workflow_triggers
 -- ============================================================
-create table public.workflow_triggers (
+create table if not exists public.workflow_triggers (
   id          uuid primary key default gen_random_uuid(),
   workflow_id uuid not null references public.workflows(id) on delete cascade,
   org_id      uuid not null references public.organizations(id) on delete cascade,
@@ -88,13 +88,13 @@ create table public.workflow_triggers (
   created_at  timestamptz not null default now()
 );
 
-create index idx_workflow_triggers_workflow_id on public.workflow_triggers(workflow_id);
-create index idx_workflow_triggers_org_id on public.workflow_triggers(org_id);
+create index if not exists idx_workflow_triggers_workflow_id on public.workflow_triggers(workflow_id);
+create index if not exists idx_workflow_triggers_org_id on public.workflow_triggers(org_id);
 
 -- ============================================================
 -- workflow_runs — one per execution
 -- ============================================================
-create table public.workflow_runs (
+create table if not exists public.workflow_runs (
   id           uuid primary key default gen_random_uuid(),
   workflow_id  uuid not null references public.workflows(id) on delete cascade,
   org_id       uuid not null references public.organizations(id) on delete cascade,
@@ -108,14 +108,14 @@ create table public.workflow_runs (
   created_at   timestamptz not null default now()
 );
 
-create index idx_workflow_runs_workflow_id on public.workflow_runs(workflow_id);
-create index idx_workflow_runs_org_id on public.workflow_runs(org_id);
-create index idx_workflow_runs_status on public.workflow_runs(status);
+create index if not exists idx_workflow_runs_workflow_id on public.workflow_runs(workflow_id);
+create index if not exists idx_workflow_runs_org_id on public.workflow_runs(org_id);
+create index if not exists idx_workflow_runs_status on public.workflow_runs(status);
 
 -- ============================================================
 -- step_runs — one per step per run
 -- ============================================================
-create table public.step_runs (
+create table if not exists public.step_runs (
   id               uuid primary key default gen_random_uuid(),
   workflow_run_id  uuid not null references public.workflow_runs(id) on delete cascade,
   workflow_step_id uuid not null references public.workflow_steps(id) on delete cascade,
@@ -134,15 +134,15 @@ create table public.step_runs (
   created_at       timestamptz not null default now()
 );
 
-create index idx_step_runs_workflow_run_id on public.step_runs(workflow_run_id);
-create index idx_step_runs_org_id on public.step_runs(org_id);
+create index if not exists idx_step_runs_workflow_run_id on public.step_runs(workflow_run_id);
+create index if not exists idx_step_runs_org_id on public.step_runs(org_id);
 
 -- ============================================================
 -- workflow_artifacts — where a `db_write` step actually persists its
 -- result ("saves a result into your own tables"), separate from
 -- step_runs.output so it's clearly a first-class, queryable artifact.
 -- ============================================================
-create table public.workflow_artifacts (
+create table if not exists public.workflow_artifacts (
   id              uuid primary key default gen_random_uuid(),
   org_id          uuid not null references public.organizations(id) on delete cascade,
   workflow_run_id uuid not null references public.workflow_runs(id) on delete cascade,
@@ -151,8 +151,8 @@ create table public.workflow_artifacts (
   created_at      timestamptz not null default now()
 );
 
-create index idx_workflow_artifacts_org_id on public.workflow_artifacts(org_id);
-create index idx_workflow_artifacts_run_id on public.workflow_artifacts(workflow_run_id);
+create index if not exists idx_workflow_artifacts_org_id on public.workflow_artifacts(org_id);
+create index if not exists idx_workflow_artifacts_run_id on public.workflow_artifacts(workflow_run_id);
 
 -- ============================================================
 -- external_events — the "watched table" for the Database Event
@@ -161,7 +161,7 @@ create index idx_workflow_artifacts_run_id on public.workflow_artifacts(workflow
 -- function, which matches it against active workflow_triggers of
 -- type 'event' by org_id + source and starts a run.
 -- ============================================================
-create table public.external_events (
+create table if not exists public.external_events (
   id         uuid primary key default gen_random_uuid(),
   org_id     uuid not null references public.organizations(id) on delete cascade,
   source     text not null,
@@ -169,7 +169,7 @@ create table public.external_events (
   created_at timestamptz not null default now()
 );
 
-create index idx_external_events_org_id on public.external_events(org_id);
+create index if not exists idx_external_events_org_id on public.external_events(org_id);
 
 -- ============================================================
 -- org_id auto-population triggers
@@ -185,15 +185,15 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger trg_workflow_steps_org_id
+create or replace trigger trg_workflow_steps_org_id
   before insert on public.workflow_steps
   for each row execute function public.set_org_id_from_workflow();
 
-create trigger trg_workflow_triggers_org_id
+create or replace trigger trg_workflow_triggers_org_id
   before insert on public.workflow_triggers
   for each row execute function public.set_org_id_from_workflow();
 
-create trigger trg_workflow_runs_org_id
+create or replace trigger trg_workflow_runs_org_id
   before insert on public.workflow_runs
   for each row execute function public.set_org_id_from_workflow();
 
@@ -205,7 +205,7 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger trg_step_runs_org_id
+create or replace trigger trg_step_runs_org_id
   before insert on public.step_runs
   for each row execute function public.set_org_id_from_workflow_run();
 
@@ -234,7 +234,7 @@ begin
 end;
 $$ language plpgsql security definer;
 
-create trigger trg_org_members_sync_role
+create or replace trigger trg_org_members_sync_role
   after insert on public.org_members
   for each row execute function public.sync_auth_user_role();
 
@@ -247,7 +247,7 @@ begin
 end;
 $$ language plpgsql;
 
-create trigger trg_workflows_updated_at
+create or replace trigger trg_workflows_updated_at
   before update on public.workflows
   for each row execute function public.touch_updated_at();
 
@@ -257,7 +257,7 @@ create trigger trg_workflows_updated_at
 -- `organizations` (see metadata) so the frontend can query
 -- `organization { usage_stats { runs_this_month avg_run_duration_seconds } }`
 -- ============================================================
-create view public.org_usage_stats as
+create or replace view public.org_usage_stats as
 select
   o.id as org_id,
   o.quota_calls_used,
