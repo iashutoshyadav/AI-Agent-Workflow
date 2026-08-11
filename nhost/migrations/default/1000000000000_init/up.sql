@@ -224,6 +224,14 @@ create or replace trigger trg_step_runs_org_id
 -- your project's auth schema version — if it differs, grant roles via
 -- the nhost dashboard instead (Settings → Roles / user's allowed
 -- roles) and drop this trigger.
+--
+-- auth.user_roles.role has a foreign key into auth.roles — nhost only
+-- pre-registers 'user', 'anonymous', 'me' there, so our custom role
+-- names must be registered too or every org_members insert fails with
+-- a foreign key violation (found by testing against the live project).
+insert into auth.roles (role) values ('owner'), ('editor'), ('viewer')
+  on conflict (role) do nothing;
+
 create or replace function public.sync_auth_user_role()
 returns trigger as $$
 begin
