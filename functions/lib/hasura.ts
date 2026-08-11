@@ -7,8 +7,16 @@
 // URLs directly, and always go through Hasura's own role-scoped
 // GraphQL API for everything else.
 
+// nhost's Run/Functions environment doesn't inject a ready-made
+// NHOST_GRAPHQL_URL — only NHOST_SUBDOMAIN + NHOST_REGION (plus
+// NHOST_ADMIN_SECRET, which IS injected directly). Build the URL from
+// those so this doesn't depend on a variable that isn't actually set.
 const GRAPHQL_URL =
-  process.env.NHOST_GRAPHQL_URL || process.env.HASURA_GRAPHQL_URL || "";
+  process.env.NHOST_GRAPHQL_URL ||
+  process.env.HASURA_GRAPHQL_URL ||
+  (process.env.NHOST_SUBDOMAIN && process.env.NHOST_REGION
+    ? `https://${process.env.NHOST_SUBDOMAIN}.graphql.${process.env.NHOST_REGION}.nhost.run/v1`
+    : "");
 const ADMIN_SECRET =
   process.env.NHOST_ADMIN_SECRET || process.env.HASURA_GRAPHQL_ADMIN_SECRET || "";
 
@@ -39,7 +47,7 @@ export async function adminGql<T = any>(
     body: JSON.stringify({ query, variables }),
   });
 
-  const json = await res.json();
+  const json: any = await res.json();
   if (json.errors) {
     throw new GraphQLError("Hasura admin GraphQL request failed", json.errors);
   }
