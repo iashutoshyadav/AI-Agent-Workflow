@@ -62,6 +62,15 @@
 - table:
     schema: public
     name: org_usage_stats
+  object_relationships:
+    - name: organization
+      using:
+        manual_configuration:
+          remote_table:
+            schema: public
+            name: organizations
+          column_mapping:
+            org_id: id
   select_permissions:
     - role: owner
       permission:

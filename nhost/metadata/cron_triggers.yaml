@@ -14,9 +14,6 @@ cron_triggers:
       timeout_seconds: 60
       tolerance_seconds: 21600
       retry_interval_seconds: 10
-    headers:
-      - name: x-hasura-admin-secret
-        value_from_env: HASURA_GRAPHQL_ADMIN_SECRET
     comment: >-
       Polls active workflow_triggers of type 'scheduled' and starts a
       run for any whose cron expression is due.
