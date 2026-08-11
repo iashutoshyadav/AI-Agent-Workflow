@@ -546,22 +546,6 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
-  # `notify` step type is implemented as an Event Trigger rather than
-  # inline code in the engine: the engine writes a step_runs row for a
-  # notify step, and this trigger fires on that INSERT to actually
-  # deliver the Slack/email alert asynchronously. See
-  # functions/notify-runner.ts.
-  event_triggers:
-    - name: step_run_notify
-      definition:
-        enable_manual: false
-        insert:
-          columns: "*"
-      retry_conf:
-        num_retries: 3
-        interval_sec: 10
-        timeout_sec: 30
-      webhook: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/notify-runner"
 
 - table:
     schema: public
@@ -723,3 +707,18 @@
           organization:
             org_members:
               user_id: { _eq: X-Hasura-User-Id }
+  # `notify` step type is implemented as an Event Trigger rather than
+  # inline code in the engine: the engine writes a step_runs row for a
+  # notify step, and THIS insert (on step_runs, not workflow_runs) is
+  # what fires actual Slack/email delivery. See functions/notify-runner.ts.
+  event_triggers:
+    - name: step_run_notify
+      definition:
+        enable_manual: false
+        insert:
+          columns: "*"
+      retry_conf:
+        num_retries: 3
+        interval_sec: 10
+        timeout_sec: 30
+      webhook: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/notify-runner"
