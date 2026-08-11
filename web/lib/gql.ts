@@ -184,14 +184,19 @@ export const APPROVE_STEP = gql`
   }
 `;
 
-export const STEP_RUNS_SUBSCRIPTION = gql`
-  subscription StepRunsForRun($runId: uuid!) {
+export const WORKFLOW_RUN_SUBSCRIPTION = gql`
+  subscription WorkflowRunStatus($runId: uuid!) {
     workflow_runs_by_pk(id: $runId) {
       id
       status
       started_at
       finished_at
     }
+  }
+`;
+
+export const STEP_RUNS_SUBSCRIPTION = gql`
+  subscription StepRunsForRun($runId: uuid!) {
     step_runs(where: { workflow_run_id: { _eq: $runId } }, order_by: { created_at: asc }) {
       id
       status

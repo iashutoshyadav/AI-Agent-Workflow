@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { useQuery, useMutation, useSubscription } from "@apollo/client";
 import { useUserId } from "@nhost/react";
-import { ORG_WORKFLOWS, STEP_RUNS_SUBSCRIPTION, APPROVE_STEP } from "@/lib/gql";
+import { ORG_WORKFLOWS, WORKFLOW_RUN_SUBSCRIPTION, STEP_RUNS_SUBSCRIPTION, APPROVE_STEP } from "@/lib/gql";
 import { roleHeader, OrgRole } from "@/lib/role";
 import TopNav from "@/components/TopNav";
 
@@ -17,7 +17,12 @@ export default function RunPage() {
   const myRole: OrgRole | undefined = orgData?.org_members.find((m: any) => m.user_id === userId)?.role;
   const orgName = orgData?.organizations_by_pk?.name;
 
-  const { data, loading, error } = useSubscription(STEP_RUNS_SUBSCRIPTION, {
+  const { data: runData, loading: runLoading, error: runError } = useSubscription(WORKFLOW_RUN_SUBSCRIPTION, {
+    variables: { runId },
+    skip: !runId,
+    ...roleHeader("user"),
+  });
+  const { data: stepData, loading: stepsLoading, error: stepsError } = useSubscription(STEP_RUNS_SUBSCRIPTION, {
     variables: { runId },
     skip: !runId,
     ...roleHeader("user"),
@@ -25,6 +30,10 @@ export default function RunPage() {
 
   const [approveStep, { loading: approving }] = useMutation(APPROVE_STEP);
   const [reason, setReason] = useState("");
+
+  const loading = runLoading || stepsLoading;
+  const error = runError || stepsError;
+  const data = runData || stepData ? { ...runData, ...stepData } : undefined;
 
   if (loading && !data) {
     return (
