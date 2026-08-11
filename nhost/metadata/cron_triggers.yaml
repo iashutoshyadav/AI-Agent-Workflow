@@ -3,17 +3,16 @@
 # workflow_triggers row of type='scheduled' against its own cron
 # expression (stored in config.cron) — this is the standard "poller"
 # pattern for per-tenant cron on top of one platform-level cron tick.
-cron_triggers:
-  - name: scheduled_workflow_poller
-    webhook: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/scheduled-runner"
-    schedule: "*/5 * * * *"
-    include_in_metadata: true
-    payload: {}
-    retry_conf:
-      num_retries: 3
-      timeout_seconds: 60
-      tolerance_seconds: 21600
-      retry_interval_seconds: 10
-    comment: >-
-      Polls active workflow_triggers of type 'scheduled' and starts a
-      run for any whose cron expression is due.
+- name: scheduled_workflow_poller
+  webhook: "https://biqeamemplmttivvhajp.functions.ap-south-1.nhost.run/v1/scheduled-runner"
+  schedule: "*/5 * * * *"
+  include_in_metadata: true
+  payload: {}
+  retry_conf:
+    num_retries: 3
+    timeout_seconds: 60
+    tolerance_seconds: 21600
+    retry_interval_seconds: 10
+  comment: >-
+    Polls active workflow_triggers of type 'scheduled' and starts a
+    run for any whose cron expression is due.
