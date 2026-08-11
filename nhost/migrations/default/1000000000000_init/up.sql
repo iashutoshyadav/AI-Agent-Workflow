@@ -175,6 +175,10 @@ create or replace trigger trg_org_members_sync_role
   after insert on public.org_members
   for each row execute function public.sync_auth_user_role();
 
+create or replace trigger trg_org_members_sync_role_update
+  after update of role on public.org_members
+  for each row execute function public.sync_auth_user_role();
+
 create or replace function public.touch_updated_at()
 returns trigger as $$
 begin
