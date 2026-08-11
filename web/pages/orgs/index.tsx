@@ -17,7 +17,7 @@ export default function OrgsPage() {
   // runs before we know which specific role the user has in any org.
   const { data, loading, error, refetch } = useQuery(MY_ORGS, {
     skip: !isAuthenticated,
-    ...roleHeader("viewer"),
+    ...roleHeader("user"),
   });
   const [createOrg, { loading: creating }] = useMutation(CREATE_ORGANIZATION);
   const [newName, setNewName] = useState("");

@@ -16,12 +16,13 @@ export default function RunPage() {
   const runId = router.query.runId as string;
   const userId = useUserId();
 
-  const { data: orgData } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId });
+  const { data: orgData } = useQuery(ORG_WORKFLOWS, { variables: { orgId }, skip: !orgId, ...roleHeader("user") });
   const myRole: OrgRole | undefined = orgData?.org_members.find((m: any) => m.user_id === userId)?.role;
 
   const { data, loading, error } = useSubscription(STEP_RUNS_SUBSCRIPTION, {
     variables: { runId },
     skip: !runId,
+    ...roleHeader("user"),
   });
 
   const [approveStep, { loading: approving }] = useMutation(APPROVE_STEP);

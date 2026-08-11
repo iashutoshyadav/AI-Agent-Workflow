@@ -19,7 +19,7 @@ export default function OrgPage() {
     variables: { orgId },
     skip: !orgId,
     pollInterval: 15000,
-    ...roleHeader("viewer"),
+    ...roleHeader("user"),
   });
 
   const myRole: OrgRole | undefined = data?.org_members.find((m: any) => m.user_id === userId)?.role;
